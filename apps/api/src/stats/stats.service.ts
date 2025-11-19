@@ -3,13 +3,42 @@ import { RedisService } from '../redis/redis.service';
 
 export interface HourlyStats {
     hour: number;
-    transactions: { count: number; amount: number };
-    withdrawals: { count: number; amount: number };
+    transactions: StatusBreakdown;
+    withdrawals: StatusBreakdown;
+}
+
+export interface StatusBreakdown {
+    success: { count: number; amount: number };
+    failed: { count: number; amount: number };
+    pending: { count: number; amount: number };
+    total: { count: number; amount: number };
 }
 
 export interface DailyStats {
     date: string;
     hourly: HourlyStats[];
+}
+
+export interface DailySummary {
+    date: string;
+    transactions: StatusBreakdown;
+    withdrawals: StatusBreakdown;
+    timestamp: string;
+}
+
+export interface WeeklyStats {
+    startDate: string;
+    endDate: string;
+    daily: DailySummary[];
+    timestamp: string;
+}
+
+export interface ProviderStats {
+    provider: string;
+    period: string;
+    transactions: StatusBreakdown;
+    withdrawals: StatusBreakdown;
+    lastUpdated: string;
 }
 
 @Injectable()
@@ -20,7 +49,6 @@ export class StatsService {
 
     /**
      * Get hourly stats for a specific date
-     * Redis Key: stats:hourly:{YYYY-MM-DD}
      */
     async getHourlyStats(date: string): Promise<DailyStats | null> {
         try {
@@ -28,7 +56,7 @@ export class StatsService {
             const data = await this.redisService.get(key);
 
             if (!data) {
-                this.logger.warn(`No stats found for date: ${date}`);
+                this.logger.warn(`No hourly stats found for date: ${date}`);
                 return null;
             }
 
@@ -40,25 +68,60 @@ export class StatsService {
     }
 
     /**
-     * Get provider stats
-     * Redis Key: stats:provider:{providerId}
+     * Get daily summary
      */
-    async getProviderStats(providerId: string): Promise<any> {
+    async getDailySummary(date: string): Promise<DailySummary | null> {
+        try {
+            const key = `stats:daily:${date}`;
+            const data = await this.redisService.get(key);
+
+            if (!data) {
+                this.logger.warn(`No daily summary found for date: ${date}`);
+                return null;
+            }
+
+            return JSON.parse(data);
+        } catch (error) {
+            this.logger.error(`Failed to get daily summary for ${date}:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get weekly stats
+     */
+    async getWeeklyStats(startDate: string, endDate: string): Promise<WeeklyStats | null> {
+        try {
+            const weekKey = `${startDate}_${endDate}`;
+            const key = `stats:weekly:${weekKey}`;
+            const data = await this.redisService.get(key);
+
+            if (!data) {
+                this.logger.warn(`No weekly stats found for ${weekKey}`);
+                return null;
+            }
+
+            return JSON.parse(data);
+        } catch (error) {
+            this.logger.error(`Failed to get weekly stats:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get provider stats
+     */
+    async getProviderStats(providerId: string): Promise<ProviderStats | null> {
         try {
             const key = `stats:provider:${providerId}`;
-            const data = await this.redisService.hgetall(key);
+            const data = await this.redisService.get(key);
 
-            if (!data || Object.keys(data).length === 0) {
+            if (!data) {
                 this.logger.warn(`No stats found for provider: ${providerId}`);
                 return null;
             }
 
-            return {
-                providerId,
-                totalTransactions: parseInt(data.totalTransactions || '0'),
-                totalWithdrawals: parseInt(data.totalWithdrawals || '0'),
-                totalAmount: parseFloat(data.totalAmount || '0'),
-            };
+            return JSON.parse(data);
         } catch (error) {
             this.logger.error(`Failed to get provider stats for ${providerId}:`, error);
             throw error;
@@ -66,20 +129,44 @@ export class StatsService {
     }
 
     /**
-     * Get summary stats for a date range
+     * Get all providers
      */
-    async getSummaryStats(startDate: string, endDate: string): Promise<any> {
+    async getAllProviders(): Promise<string[]> {
         try {
-            const key = `stats:summary:${startDate}:${endDate}`;
-            const data = await this.redisService.get(key);
+            const client = this.redisService.getClient();
+            const keys = await client.keys('stats:provider:*');
 
-            if (!data) {
-                return null;
+            return keys.map(key => key.replace('stats:provider:', ''));
+        } catch (error) {
+            this.logger.error('Failed to get all providers:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get date range summary (multiple days)
+     */
+    async getDateRangeSummary(startDate: string, endDate: string): Promise<DailySummary[]> {
+        try {
+            const summaries: DailySummary[] = [];
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+
+            const current = new Date(start);
+            while (current <= end) {
+                const dateStr = current.toISOString().split('T')[0];
+                const summary = await this.getDailySummary(dateStr);
+
+                if (summary) {
+                    summaries.push(summary);
+                }
+
+                current.setDate(current.getDate() + 1);
             }
 
-            return JSON.parse(data);
+            return summaries;
         } catch (error) {
-            this.logger.error(`Failed to get summary stats:`, error);
+            this.logger.error('Failed to get date range summary:', error);
             throw error;
         }
     }

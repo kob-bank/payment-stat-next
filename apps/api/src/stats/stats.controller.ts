@@ -19,18 +19,22 @@ export class StatsController {
         return stats;
     }
 
-    @Get('provider/:id')
-    async getProviderStats(@Param('id') providerId: string) {
-        const stats = await this.statsService.getProviderStats(providerId);
+    @Get('daily')
+    async getDailySummary(@Query('date') date: string) {
+        if (!date) {
+            return { error: 'Date parameter is required' };
+        }
+
+        const stats = await this.statsService.getDailySummary(date);
         if (!stats) {
-            return { error: 'No data found for the specified provider' };
+            return { error: 'No data found for the specified date' };
         }
 
         return stats;
     }
 
-    @Get('summary')
-    async getSummaryStats(
+    @Get('weekly')
+    async getWeeklyStats(
         @Query('startDate') startDate: string,
         @Query('endDate') endDate: string,
     ) {
@@ -38,9 +42,38 @@ export class StatsController {
             return { error: 'Both startDate and endDate parameters are required' };
         }
 
-        const stats = await this.statsService.getSummaryStats(startDate, endDate);
+        const stats = await this.statsService.getWeeklyStats(startDate, endDate);
         if (!stats) {
-            return { error: 'No data found for the specified date range' };
+            return { error: 'No data found for the specified week' };
+        }
+
+        return stats;
+    }
+
+    @Get('range')
+    async getDateRangeSummary(
+        @Query('startDate') startDate: string,
+        @Query('endDate') endDate: string,
+    ) {
+        if (!startDate || !endDate) {
+            return { error: 'Both startDate and endDate parameters are required' };
+        }
+
+        const stats = await this.statsService.getDateRangeSummary(startDate, endDate);
+        return { startDate, endDate, data: stats };
+    }
+
+    @Get('providers')
+    async getAllProviders() {
+        const providers = await this.statsService.getAllProviders();
+        return { providers };
+    }
+
+    @Get('provider/:id')
+    async getProviderStats(@Param('id') providerId: string) {
+        const stats = await this.statsService.getProviderStats(providerId);
+        if (!stats) {
+            return { error: 'No data found for the specified provider' };
         }
 
         return stats;
