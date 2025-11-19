@@ -1,135 +1,127 @@
-# Turborepo starter
+# Payment Stats Next
 
-This Turborepo starter is maintained by the Turborepo core team.
+Redis-First payment statistics system - monorepo with NestJS backend and Next.js frontend.
 
-## Using this example
+## 🎯 Project Overview
 
-Run the following command:
+This is a complete rewrite of the `payment-stat` project with a focus on **high-performance data retrieval** using a Redis-First architecture.
 
-```sh
-npx create-turbo@latest
-```
-
-## What's inside?
-
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
+## 🏗 Architecture
 
 ```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+┌─────────────┐
+│   Frontend  │ (Next.js - Static Export)
+│  (apps/web) │
+└──────┬──────┘
+       │
+       │ HTTP/REST
+       ▼
+┌─────────────┐
+│     API     │ (NestJS)
+│ (apps/api)  │
+└──────┬──────┘
+       │
+       ├──────► Redis (Fast Read - Aggregated Stats)
+       │
+       └──────► MongoDB (Source - Raw Transactions)
+                    ▲
+                    │
+              Background
+              Sync Worker
 ```
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+### Key Features
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
+1. **Redis-First Performance**: All dashboard reads from Redis cache (< 50ms response time)
+2. **Background ETL**: Automatic sync worker aggregates MongoDB data to Redis every minute
+3. **File-Based Config**: JSON configuration files (Docker/Coolify friendly)
+4. **Static Frontend**: Next.js static export for easy deployment
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
+## 📦 Apps
 
-### Develop
+- **`apps/api`**: NestJS backend with Redis-First architecture
+- **`apps/web`**: Next.js frontend (static export)
+- **`apps/docs`**: Documentation site
 
-To develop all apps and packages, run the following command:
+## 🚀 Quick Start
 
-```
-cd my-turborepo
+```bash
+# Install dependencies
+npm install
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
+# Development (all apps)
+npm run dev
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
+# Build all
+npm run build
 
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
+# Lint all
+npm run lint
 ```
 
-### Remote Caching
+### Running Individual Apps
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+```bash
+# API only
+cd apps/api
+npm run start:dev
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
+# Frontend only
+cd apps/web
+npm run dev
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+## 🔧 Environment Setup
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+### API (apps/api/.env)
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
+```bash
+PORT=3001
+MONGODB_URI=mongodb://localhost:27017/payment-stats
+REDIS_HOST=localhost
+REDIS_PORT=6379
+CONFIG_DIR=/app/config
 ```
 
-## Useful Links
+### Frontend (apps/web/.env.local)
 
-Learn more about the power of Turborepo:
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:3001
+```
 
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+## 📊 Data Flow
+
+1. **Write Path**: Transactions → MongoDB (unchanged)
+2. **Sync Worker**: MongoDB → Aggregation → Redis (every 1 min)
+3. **Read Path**: API ← Redis (dashboard queries)
+
+## 🚢 Deployment
+
+### Backend (Docker)
+
+```bash
+cd apps/api
+docker build -t payment-stats-api .
+docker run -p 3001:3001 payment-stats-api
+```
+
+### Frontend (Static Hosting)
+
+```bash
+cd apps/web
+npm run build
+# Deploy ./out directory to any static host
+```
+
+## 📚 Documentation
+
+- [API Documentation](./apps/api/README.md)
+- [Architecture Plan](https://github.com/kob-bank/payment-stat/issues/13)
+
+## 🔗 Related Projects
+
+- [Original Project](https://github.com/kob-bank/payment-stat)
+
+## 📝 License
+
+UNLICENSED
