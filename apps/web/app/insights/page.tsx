@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { apiClient, WeeklyStats } from '@/lib/api';
+import { apiClient, DailySummary } from '@/lib/api';
 import { WeeklyHourlyHeatmap } from '@/components/charts/WeeklyHourlyHeatmap';
 import SuccessRatePieChart from '@/components/charts/SuccessRatePieChart';
 import GatewayPerformanceChart from '@/components/charts/GatewayPerformanceChart';
@@ -10,7 +10,7 @@ import { getWeekRange } from '@/lib/utils';
 
 export default function InsightsPage() {
     const [dateRange, setDateRange] = useState(() => getWeekRange());
-    const [data, setData] = useState<WeeklyStats | null>(null);
+    const [data, setData] = useState<DailySummary[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -20,10 +20,11 @@ export default function InsightsPage() {
                 setLoading(true);
                 setError(null);
                 const result = await apiClient.getWeeklyStats(dateRange.start, dateRange.end);
-                setData(result);
+                setData(result || []);
             } catch (err) {
                 console.error('Failed to fetch weekly stats:', err);
                 setError('Failed to load insights data. Please try again.');
+                setData([]);
             } finally {
                 setLoading(false);
             }
@@ -34,14 +35,14 @@ export default function InsightsPage() {
 
     // Helper to aggregate data for charts
     const getAggregatedStats = () => {
-        if (!data) return null;
+        if (!data || data.length === 0) return null;
 
         let totalSuccess = 0;
         let totalFailed = 0;
         let totalPending = 0;
         let totalCount = 0;
 
-        data.daily.forEach(day => {
+        data.forEach(day => {
             totalSuccess += day.transactions.success.count + day.withdrawals.success.count;
             totalFailed += day.transactions.failed.count + day.withdrawals.failed.count;
             totalPending += day.transactions.pending.count + day.withdrawals.pending.count;
@@ -51,21 +52,21 @@ export default function InsightsPage() {
         // Construct SuccessRateData
         const successRateData = {
             summary: {
-                total_transactions: data.daily.reduce((sum, d) => sum + d.transactions.total.count, 0),
-                total_withdrawals: data.daily.reduce((sum, d) => sum + d.withdrawals.total.count, 0),
+                total_transactions: data.reduce((sum, d) => sum + d.transactions.total.count, 0),
+                total_withdrawals: data.reduce((sum, d) => sum + d.withdrawals.total.count, 0),
                 overall_success_rate: totalCount > 0 ? (totalSuccess / totalCount) * 100 : 0
             },
             by_database: {
                 'All': {
                     transactions: {
-                        total_count: data.daily.reduce((sum, d) => sum + d.transactions.total.count, 0),
-                        success_count: data.daily.reduce((sum, d) => sum + d.transactions.success.count, 0),
-                        failed_count: data.daily.reduce((sum, d) => sum + d.transactions.failed.count, 0)
+                        total_count: data.reduce((sum, d) => sum + d.transactions.total.count, 0),
+                        success_count: data.reduce((sum, d) => sum + d.transactions.success.count, 0),
+                        failed_count: data.reduce((sum, d) => sum + d.transactions.failed.count, 0)
                     },
                     withdrawals: {
-                        total_count: data.daily.reduce((sum, d) => sum + d.withdrawals.total.count, 0),
-                        success_count: data.daily.reduce((sum, d) => sum + d.withdrawals.success.count, 0),
-                        failed_count: data.daily.reduce((sum, d) => sum + d.withdrawals.failed.count, 0)
+                        total_count: data.reduce((sum, d) => sum + d.withdrawals.total.count, 0),
+                        success_count: data.reduce((sum, d) => sum + d.withdrawals.success.count, 0),
+                        failed_count: data.reduce((sum, d) => sum + d.withdrawals.failed.count, 0)
                     }
                 }
             }
@@ -104,13 +105,13 @@ export default function InsightsPage() {
                     <div className="flex justify-center items-center h-64">
                         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
                     </div>
-                ) : data && stats ? (
+                ) : data && data.length > 0 && stats ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Heatmap - Temporarily disabled as API doesn't return hourly data in weekly stats yet */}
                         {/* 
             <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Activity Heatmap</h2>
-              <WeeklyHourlyHeatmap weekData={data.daily} />
+              <WeeklyHourlyHeatmap weekData={data} />
             </div>
             */}
 
@@ -122,7 +123,11 @@ export default function InsightsPage() {
                             />
                         </div>
                     </div>
-                ) : null}
+                ) : (
+                    <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-8 text-center">
+                        <p className="text-gray-500 dark:text-gray-400">No data available for the selected period.</p>
+                    </div>
+                )}
             </div>
         </div>
     );

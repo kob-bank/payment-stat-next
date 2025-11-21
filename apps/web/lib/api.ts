@@ -97,8 +97,8 @@ export class ApiClient {
     }
 
     // Hourly Stats
-    async getHourlyStats(date: string): Promise<DailyStats> {
-        return this.request<DailyStats>(`/api/v1/stats/hourly?date=${date}`);
+    async getHourlyStats(date: string): Promise<HourlyStats[]> {
+        return this.request<HourlyStats[]>(`/api/v1/stats/hourly?date=${date}`);
     }
 
     // Daily Summary
@@ -107,8 +107,8 @@ export class ApiClient {
     }
 
     // Weekly Stats
-    async getWeeklyStats(startDate: string, endDate: string): Promise<WeeklyStats> {
-        return this.request<WeeklyStats>(
+    async getWeeklyStats(startDate: string, endDate: string): Promise<DailySummary[]> {
+        return this.request<DailySummary[]>(
             `/api/v1/stats/weekly?startDate=${startDate}&endDate=${endDate}`
         );
     }

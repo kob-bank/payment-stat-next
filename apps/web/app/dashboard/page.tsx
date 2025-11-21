@@ -8,15 +8,21 @@ import { HourlyStatsChart } from '@/components/charts/HourlyStatsChart';
 import { Loader2, AlertCircle } from 'lucide-react';
 
 export default function DashboardPage() {
-    const [selectedDate, setSelectedDate] = useState<string>(() => {
-        return new Date().toISOString().split('T')[0] || '';
-    });
-
+    const [selectedDate, setSelectedDate] = useState<string>('');
+    const [mounted, setMounted] = useState(false);
     const [data, setData] = useState<DailySummary | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Set default date only on client side to avoid hydration mismatch
     useEffect(() => {
+        setSelectedDate(new Date().toISOString().split('T')[0]);
+        setMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (!selectedDate) return; // Don't fetch until date is set
+
         async function fetchData() {
             try {
                 setLoading(true);
@@ -55,6 +61,14 @@ export default function DashboardPage() {
             overall_success_rate: overallSuccessRate
         };
     };
+
+    if (!mounted) {
+        return (
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
