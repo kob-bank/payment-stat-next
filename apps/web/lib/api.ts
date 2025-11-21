@@ -139,6 +139,29 @@ export class ApiClient {
         console.warn('getDashboardStats: Legacy method - use getDailySummary instead');
         return this.getDailySummary((params.startDate || new Date().toISOString().split('T')[0]) as string);
     }
+
+    // Admin Methods
+    async triggerSync(type: 'current' | 'full'): Promise<{ message: string }> {
+        return this.request<{ message: string }>(`/api/v1/admin/sync/${type}`, {
+            method: 'POST',
+        });
+    }
+
+    async triggerCacheWarm(): Promise<{ message: string }> {
+        return this.request<{ message: string }>('/api/v1/admin/cache/warm', {
+            method: 'POST',
+        });
+    }
+
+    async getCacheKeys(pattern: string = 'stats:*'): Promise<{ keys: { key: string; ttl: number }[] }> {
+        return this.request<{ keys: { key: string; ttl: number }[] }>(`/api/v1/admin/cache/keys?pattern=${encodeURIComponent(pattern)}`);
+    }
+
+    async deleteCacheKey(key: string): Promise<{ message: string }> {
+        return this.request<{ message: string }>(`/api/v1/admin/cache/keys/${encodeURIComponent(key)}`, {
+            method: 'DELETE',
+        });
+    }
 }
 
 export const apiClient = new ApiClient();
