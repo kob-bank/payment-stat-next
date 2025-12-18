@@ -15,6 +15,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         const port = this.configService.get<number>('REDIS_PORT', 6379);
         const db = this.configService.get<number>('REDIS_DB', 0);
         const tlsEnabled = this.configService.get<string>('REDIS_TLS') === 'true';
+        const password = this.configService.get<string>('REDIS_PASSWORD');
 
         const redisOptions: any = {
             host,
@@ -26,6 +27,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
             },
             maxRetriesPerRequest: null, // Allow unlimited retries
         };
+
+        if (password) {
+            redisOptions.password = password;
+        }
 
         if (tlsEnabled) {
             redisOptions.tls = {};
