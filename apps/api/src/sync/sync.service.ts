@@ -8,7 +8,8 @@ import { RedisService } from '../redis/redis.service';
 import { FileConfigService } from '../config/file-config.service';
 import { TransactionSchema } from '../database/schemas/transaction.schema';
 import { WithdrawalSchema } from '../database/schemas/withdrawal.schema';
-import pLimit from 'p-limit';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const pLimit = require('p-limit');
 
 // Interface definition locally to avoid circular dep or move to shared lib
 export interface AmountDistribution {
