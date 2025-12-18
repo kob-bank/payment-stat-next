@@ -17,10 +17,31 @@ export interface DailyStats {
     hourly: HourlyStats[];
 }
 
+export interface AmountDistribution {
+    range: string;
+    count: number;
+    amount: number;
+    providers?: Record<string, { count: number; amount: number }>;
+}
+
+export interface SiteStats {
+    total: StatusBreakdown;
+    transactions: StatusBreakdown;
+    withdrawals: StatusBreakdown;
+    providers: Record<string, StatusBreakdown>;
+    hourly: Record<string, StatusBreakdown>;
+    amountDistribution: Record<string, AmountDistribution>;
+    hourlyDistribution: Record<string, Record<string, { count: number; providers?: Record<string, { count: number }> }>>;
+}
+
 export interface DailySummary {
     date: string;
     transactions: StatusBreakdown;
     withdrawals: StatusBreakdown;
+    providers: Record<string, StatusBreakdown>;
+    sites: Record<string, SiteStats>;
+    amountDistribution: Record<string, AmountDistribution>;
+    hourlyDistribution: Record<string, Record<string, { count: number; providers?: Record<string, { count: number }> }>>;
     timestamp: string;
 }
 
@@ -97,8 +118,8 @@ export class ApiClient {
     }
 
     // Hourly Stats
-    async getHourlyStats(date: string): Promise<HourlyStats[]> {
-        return this.request<HourlyStats[]>(`/api/v1/stats/hourly?date=${date}`);
+    async getHourlyStats(date: string): Promise<DailyStats> {
+        return this.request<DailyStats>(`/api/v1/stats/hourly?date=${date}`);
     }
 
     // Daily Summary
@@ -107,8 +128,8 @@ export class ApiClient {
     }
 
     // Weekly Stats
-    async getWeeklyStats(startDate: string, endDate: string): Promise<DailySummary[]> {
-        return this.request<DailySummary[]>(
+    async getWeeklyStats(startDate: string, endDate: string): Promise<WeeklyStats> {
+        return this.request<WeeklyStats>(
             `/api/v1/stats/weekly?startDate=${startDate}&endDate=${endDate}`
         );
     }
@@ -162,6 +183,39 @@ export class ApiClient {
             method: 'DELETE',
         });
     }
+
+    async getDatabases(): Promise<{ databases: { name: string; collections: string[] }[] }> {
+        return this.request<{ databases: { name: string; collections: string[] }[] }>('/api/v1/admin/databases');
+    }
+
+    async getSyncStatus(): Promise<SyncStatus> {
+        return this.request<SyncStatus>('/api/v1/admin/sync/status');
+    }
+    async getCacheStatus(): Promise<{ cachedDates: string[] }> {
+        return this.request<{ cachedDates: string[] }>('/api/v1/sync/cache-status');
+    }
+
+    async triggerDailySync(date: string): Promise<{ message: string; date: string }> {
+        return this.request<{ message: string; date: string }>('/api/v1/sync/daily', {
+            method: 'POST',
+            body: JSON.stringify({ date }),
+        });
+    }
+
+    async triggerBulkSync(dates: string[]): Promise<{ message: string; processed: number }> {
+        return this.request<{ message: string; processed: number }>('/api/v1/sync/bulk', {
+            method: 'POST',
+            body: JSON.stringify({ dates }),
+        });
+    }
+}
+
+
+export interface SyncStatus {
+    status: 'idle' | 'running' | 'completed' | 'failed';
+    message: string;
+    progress: number;
+    lastUpdated: string;
 }
 
 export const apiClient = new ApiClient();

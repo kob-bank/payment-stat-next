@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '../redis/redis.service';
+import { SyncService } from '../sync/sync.service';
 
 export interface HourlyStats {
     hour: number;
@@ -19,10 +20,27 @@ export interface DailyStats {
     hourly: HourlyStats[];
 }
 
+export interface AmountDistribution {
+    range: string;
+    count: number;
+    amount: number;
+    providers?: Record<string, { count: number; amount: number }>;
+}
+
+export interface SiteStats {
+    total: StatusBreakdown;
+    providers: Record<string, StatusBreakdown>;
+    hourly: Record<string, StatusBreakdown>;
+    amountDistribution: Record<string, AmountDistribution>;
+    hourlyDistribution: Record<string, Record<string, { count: number; providers?: Record<string, { count: number }> }>>; // hour -> range -> { count, providers }
+}
+
 export interface DailySummary {
     date: string;
     transactions: StatusBreakdown;
     withdrawals: StatusBreakdown;
+    providers: Record<string, StatusBreakdown>;
+    sites: Record<string, SiteStats>;
     timestamp: string;
 }
 
@@ -45,7 +63,10 @@ export interface ProviderStats {
 export class StatsService {
     private readonly logger = new Logger(StatsService.name);
 
-    constructor(private readonly redisService: RedisService) { }
+    constructor(
+        private readonly redisService: RedisService,
+        private readonly syncService: SyncService
+    ) { }
 
     /**
      * Get hourly stats for a specific date
@@ -56,8 +77,9 @@ export class StatsService {
             const data = await this.redisService.get(key);
 
             if (!data) {
-                this.logger.warn(`No hourly stats found for date: ${date}`);
-                return null;
+                this.logger.warn(`No hourly stats found in Redis for date: ${date}. Fetching from DB...`);
+                // Fallback to DB
+                return await this.syncService.syncDayStats(date);
             }
 
             return JSON.parse(data);
@@ -76,8 +98,9 @@ export class StatsService {
             const data = await this.redisService.get(key);
 
             if (!data) {
-                this.logger.warn(`No daily summary found for date: ${date}`);
-                return null;
+                this.logger.warn(`No daily summary found in Redis for date: ${date}. Fetching from DB...`);
+                // Fallback to DB
+                return await this.syncService.syncDailySummary(date);
             }
 
             return JSON.parse(data);
@@ -92,16 +115,32 @@ export class StatsService {
      */
     async getWeeklyStats(startDate: string, endDate: string): Promise<WeeklyStats | null> {
         try {
-            const weekKey = `${startDate}_${endDate}`;
-            const key = `stats:weekly:${weekKey}`;
-            const data = await this.redisService.get(key);
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const dailySummaries: DailySummary[] = [];
 
-            if (!data) {
-                this.logger.warn(`No weekly stats found for ${weekKey}`);
+            // Iterate through each day in the range
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const dateStr = d.toISOString().split('T')[0];
+                const key = `stats:daily:${dateStr}`;
+                const data = await this.redisService.get(key);
+
+                if (data) {
+                    dailySummaries.push(JSON.parse(data));
+                }
+            }
+
+            if (dailySummaries.length === 0) {
+                this.logger.warn(`No daily stats found for range ${startDate} to ${endDate}`);
                 return null;
             }
 
-            return JSON.parse(data);
+            return {
+                startDate,
+                endDate,
+                daily: dailySummaries,
+                timestamp: new Date().toISOString()
+            };
         } catch (error) {
             this.logger.error(`Failed to get weekly stats:`, error);
             throw error;

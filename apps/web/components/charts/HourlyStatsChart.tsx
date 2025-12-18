@@ -17,16 +17,14 @@ interface HourlyData {
   hour: number;
   hour_label: string;
   transactions: {
-    count: number;
-    amount: number;
-    success: number;
-    failed: number;
+    total: { count: number; amount: number };
+    success: { count: number; amount: number };
+    failed: { count: number; amount: number };
   };
   withdrawals: {
-    count: number;
-    amount: number;
-    success: number;
-    failed: number;
+    total: { count: number; amount: number };
+    success: { count: number; amount: number };
+    failed: { count: number; amount: number };
   };
 }
 
@@ -72,18 +70,20 @@ export function HourlyStatsChart({
   height = 400,
 }: HourlyStatsChartProps) {
   const chartData = useMemo(() => {
+    if (!Array.isArray(data)) return [];
     return data.map((item) => ({
       hour: item.hour_label,
-      transactions: metric === 'count' ? item.transactions.count : item.transactions.amount,
-      withdrawals: metric === 'count' ? item.withdrawals.count : item.withdrawals.amount,
-      tx_success: metric === 'count' ? item.transactions.success : 0,
-      tx_failed: metric === 'count' ? item.transactions.failed : 0,
-      wd_success: metric === 'count' ? item.withdrawals.success : 0,
-      wd_failed: metric === 'count' ? item.withdrawals.failed : 0,
+      transactions: metric === 'count' ? item.transactions.total.count : item.transactions.total.amount,
+      withdrawals: metric === 'count' ? item.withdrawals.total.count : item.withdrawals.total.amount,
+      tx_success: metric === 'count' ? item.transactions.success.count : 0,
+      tx_failed: metric === 'count' ? item.transactions.failed.count : 0,
+      wd_success: metric === 'count' ? item.withdrawals.success.count : 0,
+      wd_failed: metric === 'count' ? item.withdrawals.failed.count : 0,
     }));
   }, [data, metric]);
 
   const maxValue = useMemo(() => {
+    if (chartData.length === 0) return 0;
     return Math.max(
       ...chartData.map((d) => {
         const values: number[] = [];

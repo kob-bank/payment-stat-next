@@ -62,23 +62,22 @@ function StatCard({ title, value, icon: Icon, trend, color, isLoading }: StatCar
           <Icon className={`w-5 h-5 ${textColor}`} />
         </div>
       </div>
-      
+
       <div className="flex items-baseline justify-between">
         <div>
           <p className="text-2xl font-bold text-gray-900">
             {typeof value === 'number' ? new Intl.NumberFormat('en-US').format(value) : value}
           </p>
-          {trend && (
+          {trend && trend.value !== 0 && (
             <div className="flex items-center mt-1">
               {trend.direction === 'up' ? (
                 <TrendingUp className="w-3 h-3 text-green-500 mr-1" />
               ) : trend.direction === 'down' ? (
                 <TrendingDown className="w-3 h-3 text-red-500 mr-1" />
               ) : null}
-              <span className={`text-xs font-medium ${
-                trend.direction === 'up' ? 'text-green-600' : 
-                trend.direction === 'down' ? 'text-red-600' : 'text-gray-600'
-              }`}>
+              <span className={`text-xs font-medium ${trend.direction === 'up' ? 'text-green-600' :
+                  trend.direction === 'down' ? 'text-red-600' : 'text-gray-600'
+                }`}>
                 {trend.direction !== 'neutral' && (trend.direction === 'up' ? '+' : '')}
                 {trend.value.toFixed(1)}%
               </span>
@@ -92,10 +91,10 @@ function StatCard({ title, value, icon: Icon, trend, color, isLoading }: StatCar
 }
 
 export default function StatsCards({ data, isLoading = false, previousData }: StatsCardsProps) {
-  
+
   const calculateTrend = (current: number, previous?: number) => {
     if (!previous || previous === 0) return { value: 0, direction: 'neutral' as const };
-    
+
     const change = ((current - previous) / previous) * 100;
     return {
       value: Math.abs(change),
@@ -173,7 +172,7 @@ export default function StatsCards({ data, isLoading = false, previousData }: St
       icon: TrendingUp,
       color: 'purple' as const,
       trend: previousData ? calculateTrend(
-        avgTransactionAmount, 
+        avgTransactionAmount,
         previousData.total_transactions > 0 ? previousData.total_transaction_amount / previousData.total_transactions : 0
       ) : undefined,
     },
@@ -238,7 +237,7 @@ export default function StatsCards({ data, isLoading = false, previousData }: St
               </p>
               <p className="text-xs text-gray-500">Transactions to Withdrawals</p>
             </div>
-            
+
             <div className="text-center p-4 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-600 mb-1">Volume Efficiency</p>
               <p className="text-lg font-bold text-gray-900">
@@ -246,15 +245,14 @@ export default function StatsCards({ data, isLoading = false, previousData }: St
               </p>
               <p className="text-xs text-gray-500">Average per Operation</p>
             </div>
-            
+
             <div className="text-center p-4 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-600 mb-1">Success Score</p>
-              <p className={`text-lg font-bold ${
-                data.overall_success_rate >= 95 ? 'text-green-600' : 
-                data.overall_success_rate >= 90 ? 'text-yellow-600' : 'text-red-600'
-              }`}>
-                {data.overall_success_rate >= 95 ? 'Excellent' : 
-                 data.overall_success_rate >= 90 ? 'Good' : 'Needs Attention'}
+              <p className={`text-lg font-bold ${data.overall_success_rate >= 95 ? 'text-green-600' :
+                  data.overall_success_rate >= 90 ? 'text-yellow-600' : 'text-red-600'
+                }`}>
+                {data.overall_success_rate >= 95 ? 'Excellent' :
+                  data.overall_success_rate >= 90 ? 'Good' : 'Needs Attention'}
               </p>
               <p className="text-xs text-gray-500">{formatPercentage(data.overall_success_rate)} Success Rate</p>
             </div>

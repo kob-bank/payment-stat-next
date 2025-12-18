@@ -11,7 +11,7 @@ export class FileConfigService implements IConfigService, OnModuleInit {
     private readonly dbConfigFile: string;
 
     constructor(private configService: ConfigService) {
-        this.configDir = this.configService.get<string>('CONFIG_DIR', '/app/config');
+        this.configDir = this.configService.get<string>('CONFIG_DIR', path.join(process.cwd(), 'config'));
         this.dbConfigFile = path.join(this.configDir, 'databases.json');
     }
 

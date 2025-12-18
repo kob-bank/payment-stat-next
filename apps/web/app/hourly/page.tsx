@@ -5,12 +5,15 @@ import { apiClient } from '@/lib/api';
 import { HourlyStatsChart } from '@/components/charts/HourlyStatsChart';
 
 export default function HourlyStatsPage() {
-  const [selectedDate, setSelectedDate] = useState(() => {
-    // Default to yesterday
+  const [selectedDate, setSelectedDate] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    return yesterday.toISOString().split('T')[0];
-  });
+    setSelectedDate(yesterday.toISOString().split('T')[0] ?? '');
+    setMounted(true);
+  }, []);
 
   const [hourlyData, setHourlyData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -37,6 +40,8 @@ export default function HourlyStatsPage() {
 
     fetchHourlyStats();
   }, [selectedDate]);
+
+  if (!mounted) return null;
 
   const peakHour = hourlyData?.summary?.peak_hour;
 
@@ -84,19 +89,19 @@ export default function HourlyStatsPage() {
       </div>
 
       {/* Stats Summary Cards */}
-      {hourlyData && !loading && (
+      {hourlyData && !loading && hourlyData.summary && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg shadow p-6">
             <div className="text-sm opacity-90 mb-1">Total Transactions</div>
             <div className="text-3xl font-bold">
-              {hourlyData.summary.total_transactions.toLocaleString()}
+              {hourlyData.summary.total_transactions?.toLocaleString() ?? 0}
             </div>
           </div>
 
           <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg shadow p-6">
             <div className="text-sm opacity-90 mb-1">Total Withdrawals</div>
             <div className="text-3xl font-bold">
-              {hourlyData.summary.total_withdrawals.toLocaleString()}
+              {hourlyData.summary.total_withdrawals?.toLocaleString() ?? 0}
             </div>
           </div>
 
@@ -174,7 +179,7 @@ export default function HourlyStatsPage() {
       </div>
 
       {/* Data Table */}
-      {hourlyData && !loading && (
+      {hourlyData && !loading && Array.isArray(hourlyData.hourly) && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mt-6 overflow-x-auto">
           <h3 className="text-lg font-semibold mb-4">Detailed Hourly Data</h3>
           <table className="w-full text-sm">
@@ -193,18 +198,18 @@ export default function HourlyStatsPage() {
               {hourlyData.hourly.map((hour: any) => (
                 <tr key={hour.hour} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                   <td className="p-2 font-medium">{hour.hour_label}</td>
-                  <td className="text-right p-2">{hour.transactions.count.toLocaleString()}</td>
-                  <td className="text-right p-2">{hour.transactions.amount.toLocaleString()} THB</td>
+                  <td className="text-right p-2">{hour.transactions.total.count.toLocaleString()}</td>
+                  <td className="text-right p-2">{hour.transactions.total.amount.toLocaleString()} THB</td>
                   <td className="text-right p-2 text-green-600">
-                    {hour.transactions.count > 0
-                      ? `${((hour.transactions.success / hour.transactions.count) * 100).toFixed(1)}%`
+                    {hour.transactions.total.count > 0
+                      ? `${((hour.transactions.success.count / hour.transactions.total.count) * 100).toFixed(1)}%`
                       : 'N/A'}
                   </td>
-                  <td className="text-right p-2">{hour.withdrawals.count.toLocaleString()}</td>
-                  <td className="text-right p-2">{hour.withdrawals.amount.toLocaleString()} THB</td>
+                  <td className="text-right p-2">{hour.withdrawals.total.count.toLocaleString()}</td>
+                  <td className="text-right p-2">{hour.withdrawals.total.amount.toLocaleString()} THB</td>
                   <td className="text-right p-2 text-green-600">
-                    {hour.withdrawals.count > 0
-                      ? `${((hour.withdrawals.success / hour.withdrawals.count) * 100).toFixed(1)}%`
+                    {hour.withdrawals.total.count > 0
+                      ? `${((hour.withdrawals.success.count / hour.withdrawals.total.count) * 100).toFixed(1)}%`
                       : 'N/A'}
                   </td>
                 </tr>

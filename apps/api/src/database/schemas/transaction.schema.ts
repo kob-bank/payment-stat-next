@@ -20,6 +20,9 @@ export class Transaction {
     @Prop({ required: true })
     provider: string;
 
+    @Prop()
+    site: string;
+
     @Prop({ required: true })
     timestamp: Date;
 
