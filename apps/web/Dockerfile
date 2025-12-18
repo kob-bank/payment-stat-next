@@ -14,7 +14,9 @@ RUN apk add --no-cache libc6-compat
 RUN npm config set fetch-retry-maxtimeout 600000 && npm install
 
 # Set API URL for build time (if needed by client components during build)
-ENV NEXT_PUBLIC_API_URL=http://localhost:3001
+# Set API URL for build time
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 # Build web
 RUN npx turbo run build --filter=web
