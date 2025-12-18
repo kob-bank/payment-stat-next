@@ -14,8 +14,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         const host = this.configService.get<string>('REDIS_HOST', 'localhost');
         const port = this.configService.get<number>('REDIS_PORT', 6379);
         const db = this.configService.get<number>('REDIS_DB', 0);
+        const tlsEnabled = this.configService.get<string>('REDIS_TLS') === 'true';
 
-        this.client = new Redis({
+        const redisOptions: any = {
             host,
             port,
             db,
@@ -24,7 +25,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
                 return 5000;
             },
             maxRetriesPerRequest: null, // Allow unlimited retries
-        });
+        };
+
+        if (tlsEnabled) {
+            redisOptions.tls = {};
+        }
+
+        this.client = new Redis(redisOptions);
 
         this.client.on('connect', () => {
             this.logger.log('Redis connected');
