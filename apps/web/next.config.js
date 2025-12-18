@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // output: 'export', // Disabled to allow Middleware for Authentication
+    output: "standalone",
     images: {
         unoptimized: true,
     },

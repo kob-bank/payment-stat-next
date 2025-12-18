@@ -1,7 +1,5 @@
 FROM node:20-alpine AS builder
 
-
-RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Copy root config
@@ -11,20 +9,35 @@ COPY package.json package-lock.json turbo.json ./
 COPY packages ./packages
 COPY apps/web ./apps/web
 
-# Install dependencies
+# Install dependencies (libc6-compat might be needed for some deps even in runner if not fully standalone, but usually inside builder is enough)
+RUN apk add --no-cache libc6-compat
 RUN npm config set fetch-retry-maxtimeout 600000 && npm install
 
-# Set API URL for build time
+# Set API URL for build time (if needed by client components during build)
 ENV NEXT_PUBLIC_API_URL=http://localhost:3001
 
 # Build web
 RUN npx turbo run build --filter=web
 
-FROM nginx:alpine
+FROM node:20-alpine AS runner
+WORKDIR /app
 
-COPY --from=builder /app/apps/web/out /usr/share/nginx/html
-COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
+# Don't run as root
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+USER nextjs
 
-EXPOSE 80
+COPY --from=builder /app/apps/web/next.config.js ./
+COPY --from=builder /app/apps/web/public ./apps/web/public
+COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
 
-CMD ["nginx", "-g", "daemon off;"]
+# Copy the standalone build
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
+
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+EXPOSE 3000
+
+CMD ["node", "apps/web/server.js"]
