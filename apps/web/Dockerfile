@@ -1,5 +1,7 @@
 FROM node:18-alpine AS builder
 
+
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Copy root config
