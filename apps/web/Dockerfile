@@ -24,6 +24,10 @@ RUN npx turbo run build --filter=web
 FROM node:20-alpine AS runner
 WORKDIR /app
 
+# Set timezone to GMT+7
+RUN apk add --no-cache tzdata
+ENV TZ=Asia/Bangkok
+
 # Don't run as root
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs

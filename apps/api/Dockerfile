@@ -20,6 +20,10 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Set timezone to GMT+7
+RUN apk add --no-cache tzdata
+ENV TZ=Asia/Bangkok
+
 # Copy built artifacts and dependencies
 COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
