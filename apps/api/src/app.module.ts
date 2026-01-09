@@ -7,6 +7,7 @@ import { RedisModule } from './redis/redis.module';
 import { StatsModule } from './stats/stats.module';
 import { SyncModule } from './sync/sync.module';
 import { AdminModule } from './admin/admin.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
     imports: [
@@ -16,6 +17,7 @@ import { AdminModule } from './admin/admin.module';
         StatsModule,
         SyncModule,
         AdminModule,
+        ReportsModule,
         ScheduleModule.forRoot(),
     ],
     controllers: [],

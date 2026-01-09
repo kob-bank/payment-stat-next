@@ -4,6 +4,9 @@
         "fdpay-production",
         "bitzpay-production",
         "compay-production",
-        "chypay-production"
+        "chypay-production",
+        "paydiwa-production",
+        "sandpay-production",
+        "wpazy-production"
     ]
 }
