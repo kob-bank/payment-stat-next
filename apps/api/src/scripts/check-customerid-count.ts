@@ -26,7 +26,7 @@ async function checkCustomerIds() {
             const allCount = await db.collection('transactions').countDocuments({ site: 'uni168' });
             const withCustomerIdCount = await db.collection('transactions').countDocuments({
                 site: 'uni168',
-                customerId: { $exists: true, $ne: null, $ne: '' }
+                customerId: { $exists: true, $nin: [null, ''] }
             });
 
             if (allCount > 0) {
